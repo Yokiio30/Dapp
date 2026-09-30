@@ -1,0 +1,13 @@
+services:
+  - type: web
+    name: chain-bank-dapp
+    runtime: static
+    buildCommand: echo "static site, no build"
+    staticPublishPath: ./web
+    headers:
+      - path: /*
+        name: X-Content-Type-Options
+        value: nosniff
+      - path: /*
+        name: Referrer-Policy
+        value: no-referrer
