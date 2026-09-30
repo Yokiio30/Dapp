@@ -1,6 +1,0 @@
-services:
-  - type: web
-    name: my-dapp
-    runtime: static
-    staticPublishPath: .
-    buildCommand: echo "static site"
