@@ -22,10 +22,3 @@ services:
     #   name: bank-data
     #   mountPath: /var/data
     #   sizeGB: 1
-    headers:
-      - path: /*
-        name: X-Content-Type-Options
-        value: nosniff
-      - path: /*
-        name: Referrer-Policy
-        value: no-referrer
