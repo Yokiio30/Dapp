@@ -6,6 +6,9 @@ const ganache = require("ganache");
 const { ethers } = require("ethers");
 const { JSDOM } = require("jsdom");
 const artifact = require("../build/SimpleBank.json");
+const { createStore } = require("../server/db");
+const { createIndexer } = require("../server/indexer");
+const { createServer } = require("../server/server");
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 async function waitFor(fn, what, ms = 15000) {
@@ -23,12 +26,19 @@ async function waitFor(fn, what, ms = 15000) {
   await bank.waitForDeployment();
   const addr = await bank.getAddress();
 
+  // 后端：数据库 + 索引器 + API（页面的“全站交易记录”卡片读它）
+  const store = createStore({ dbPath: ":memory:", chainId: 1337, contractAddress: addr });
+  const indexer = createIndexer({ provider: bp, store, log: { log() {}, warn() {}, error() {} } });
+  const apiServer = createServer({ store, indexer, minSyncGapMs: 0 });
+  await new Promise((r) => apiServer.listen(0, "127.0.0.1", r));
+  const apiUrl = `http://127.0.0.1:${apiServer.address().port}/api`;
+
   const web = path.join(__dirname, "..", "web");
   let html = fs.readFileSync(path.join(web, "index.html"), "utf8");
   const ethersJs = fs.readFileSync(path.join(__dirname, "..", "node_modules", "ethers", "dist", "ethers.umd.min.js"), "utf8");
   const cfg = `window.BANK_CONFIG=${JSON.stringify({
     contractAddress: addr, deployBlock: 0, chainId: 1337, chainName: "Local",
-    rpcUrl: "http://127.0.0.1:1", explorer: "https://example.test", symbol: "ETH",
+    rpcUrl: "http://127.0.0.1:1", explorer: "https://example.test", symbol: "ETH", apiUrl,
   })};`;
   html = html
     .replace(/<script src="https:\/\/cdn[^"]*"><\/script>/, () => `<script>${ethersJs}</script>`)
@@ -40,6 +50,7 @@ async function waitFor(fn, what, ms = 15000) {
     beforeParse(w) {
       w.ethereum = server;               // EIP-1193 注入钱包
       w.confirm = () => true;
+      w.fetch = (u, o) => fetch(u, o);   // jsdom 没有 fetch，用 Node 自带的
       w.TextEncoder = TextEncoder; w.TextDecoder = TextDecoder;
       w.eval("void 0");
     },
@@ -56,6 +67,8 @@ async function waitFor(fn, what, ms = 15000) {
   await waitFor(() => $("netPill").textContent === "Local", "网络标识");
   check("网络识别正确", true);
   check("按钮已启用", !$("depBtn").disabled);
+  await waitFor(() => !$("allCard").hidden, "全站记录卡片出现");
+  check("后端可用时显示全站记录卡片（暂无记录）", $("allHistory").textContent.includes("暂无记录"), $("allHistory").textContent);
 
   // 存款 2 ETH
   $("depAmt").value = "2";
@@ -108,9 +121,26 @@ async function waitFor(fn, what, ms = 15000) {
   check("历史记录显示 3 笔", d.querySelectorAll("#history li:not(.empty)").length === 3,
         String(d.querySelectorAll("#history li").length));
 
+  // 全站记录：每笔交易确认后页面会通知后端同步，数据库里应有同样 3 笔
+  await waitFor(() => d.querySelectorAll("#allHistory li:not(.empty)").length >= 3, "全站记录显示 3 笔");
+  check("全站记录显示 3 笔（来自数据库）", d.querySelectorAll("#allHistory li:not(.empty)").length === 3);
+  check("数据库里有 3 笔记录", store.listTransactions().total === 3, String(store.listTransactions().total));
+  check("全站记录计数显示", $("allCount").textContent.includes("3"), $("allCount").textContent);
+  const types = store.listTransactions().items.map((t) => t.type).reverse().join(",");
+  check("数据库记录顺序：存款、取款、转账", types === "deposit,withdraw,transfer", types);
+  const other_addr = (await other.getAddress()).toLowerCase();
+  check("收款方在数据库里有汇总", store.getUser(other_addr)?.balanceWei === ethers.parseEther("1").toString());
+  $("allMine").click();
+  await waitFor(() => $("allMine").getAttribute("aria-pressed") === "true", "只看我的开关");
+  await waitFor(() => d.querySelectorAll("#allHistory li:not(.empty)").length === 3, "只看我的 3 笔");
+  check("只看我的：显示 3 笔，转出标红", d.querySelectorAll("#allHistory .neg").length >= 1);
+
   const failed = results.filter((x) => !x).length;
   console.log(`\n${results.length - failed}/${results.length} 通过`);
-  dom.window.close();
+  apiServer.closeAllConnections?.();
+  await new Promise((r) => apiServer.close(r));
+  store.close();
   await server.disconnect();
+  dom.window.close();   // 最后才关页面，避免还在路上的请求回调时页面已销毁
   process.exit(failed ? 1 : 0);
 })().catch((e) => { console.error("测试异常:", e); process.exit(1); });

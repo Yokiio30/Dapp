@@ -56,6 +56,12 @@
   li a{color:inherit;text-decoration:none}
   .pos{color:var(--ok);font-weight:600;white-space:nowrap} .neg{color:var(--err);font-weight:600;white-space:nowrap}
   .empty{color:var(--muted);font-size:.9rem;padding:8px 0}
+  .card[hidden]{display:none}
+  .amt{font-weight:600;white-space:nowrap}
+  .head{display:flex;justify-content:space-between;align-items:center;gap:8px}
+  .head .btns{display:flex;gap:6px}
+  button.small.on{background:var(--accent);color:#fff}
+  #allMore{margin-top:10px}
   footer{font-size:.75rem;color:var(--muted);text-align:center}
   a.link{color:var(--accent)}
 </style>
@@ -123,6 +129,18 @@
       <button class="ghost small" id="reloadBtn" type="button">刷新</button>
     </div>
     <ul id="history"><li class="empty">连接钱包后显示</li></ul>
+  </section>
+
+  <section class="card" id="allCard" hidden>
+    <div class="head">
+      <div><strong>全站交易记录</strong> <span class="label" id="allCount"></span></div>
+      <div class="btns">
+        <button class="ghost small" id="allMine" type="button" aria-pressed="false">只看我的</button>
+        <button class="ghost small" id="allReload" type="button">刷新</button>
+      </div>
+    </div>
+    <ul id="allHistory"><li class="empty">加载中…</li></ul>
+    <button class="ghost" id="allMore" type="button" hidden>加载更多</button>
   </section>
 
   <footer>
@@ -251,6 +269,7 @@
     }
     render();
     loadHistory();
+    loadAll(true);
   }
 
   // ---------- 历史记录 ----------
@@ -299,6 +318,76 @@
     } catch (e) {
       list.replaceChildren(el("li", "empty", "记录加载失败：" + friendly(e)));
     }
+  }
+
+  // ---------- 全站记录（来自后端数据库） ----------
+  // 后端把链上事件同步进 SQL 数据库，这里读取所有用户的记录。后端不可用时整张卡片自动隐藏，页面其余功能不受影响。
+  const apiBase = (cfg.apiUrl === undefined ? "/api" : String(cfg.apiUrl)).replace(/\/+$/, "");
+  const canApi = typeof fetch === "function" && !!apiBase && location.protocol !== "file:";
+  const PAGE = 20;
+  let allOnlyMine = false, allOffset = 0;
+
+  async function api(path, opts) {
+    const r = await fetch(apiBase + path, opts);
+    if (!r.ok) throw new Error("HTTP " + r.status);
+    return r.json();
+  }
+
+  function allRow(t) {
+    const me = account ? account.toLowerCase() : null;
+    const amt = BigInt(t.amountWei);
+    let title, sub, cls = "amt", text = fmt(amt);
+    if (t.type === "deposit") { title = "存款"; sub = `${short(t.from)} · 钱包 → 银行`; }
+    else if (t.type === "withdraw") { title = "取款"; sub = `${short(t.from)} · 银行 → 钱包`; }
+    else { title = "转账"; sub = `${short(t.from)} → ${short(t.to)}`; }
+    if (me) {
+      // 与我有关的记录标出正负
+      const inflow = t.type === "deposit" || (t.type === "transfer" && t.to === me);
+      const mine = t.from === me || t.to === me;
+      if (mine) {
+        if (t.type === "transfer") title = t.to === me ? "转入" : "转出";
+        cls = inflow ? "pos" : "neg";
+        text = (inflow ? "+" : "-") + text;
+      }
+    }
+    const li = el("li");
+    const left = el("div");
+    const a = el("a", null, title);
+    a.href = `${cfg.explorer}/tx/${t.txHash}`; a.target = "_blank"; a.rel = "noopener noreferrer";
+    left.appendChild(a);
+    left.appendChild(el("div", "sub", `${sub}`));
+    left.appendChild(el("div", "sub", new Date(t.blockTime * 1000).toLocaleString() + ` · 区块 ${t.blockNumber}`));
+    li.appendChild(left);
+    li.appendChild(el("div", cls, text));
+    return li;
+  }
+
+  async function loadAll(reset) {
+    if (!canApi) return;
+    const list = $("allHistory");
+    try {
+      if (reset) allOffset = 0;
+      const q = new URLSearchParams({ limit: String(PAGE), offset: String(allOffset) });
+      if (allOnlyMine && account) q.set("address", account);
+      const data = await api("/transactions?" + q);
+      if (reset) list.replaceChildren();
+      for (const t of data.items) list.appendChild(allRow(t));
+      allOffset += data.items.length;
+      if (!list.children.length) list.appendChild(el("li", "empty", "暂无记录"));
+      $("allCount").textContent = `共 ${data.total} 笔`;
+      $("allMore").hidden = allOffset >= data.total;
+      $("allCard").hidden = false;
+    } catch (_) {
+      if ($("allCard").hidden) return;       // 后端从来没通过：保持隐藏
+      list.replaceChildren(el("li", "empty", "全站记录暂时无法加载"));
+      $("allMore").hidden = true;
+    }
+  }
+
+  // 交易确认后，通知后端立刻去链上同步（后端自己读链，不信任这里传的任何数据）
+  async function syncApi() {
+    if (!canApi) return;
+    try { await api("/sync", { method: "POST" }); } catch (_) {}
   }
 
   // ---------- 钱包连接 / 网络 ----------
@@ -358,6 +447,7 @@
       await tx.wait();
       setStatus(`✅ ${label}成功`, "ok", tx.hash);
       ["depAmt", "wdAmt", "trAmt"].forEach((id) => ($(id).value = ""));
+      await syncApi();
       await refresh();
     } catch (e) {
       setStatus("❌ " + friendly(e), "err");
@@ -397,6 +487,15 @@
   });
   $("connectBtn").onclick = () => connect(false);
   $("reloadBtn").onclick = () => refresh();
+  $("allReload").onclick = async () => { await syncApi(); loadAll(true); };
+  $("allMore").onclick = () => loadAll(false);
+  $("allMine").onclick = () => {
+    if (!account) { setStatus("连接钱包后才能只看自己的记录", "err"); return; }
+    allOnlyMine = !allOnlyMine;
+    $("allMine").classList.toggle("on", allOnlyMine);
+    $("allMine").setAttribute("aria-pressed", String(allOnlyMine));
+    loadAll(true);
+  };
 
   if (window.ethereum) {
     window.ethereum.on?.("accountsChanged", () => location.reload());

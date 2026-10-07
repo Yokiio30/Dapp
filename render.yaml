@@ -1,9 +1,27 @@
 services:
+  # 后端 + 前端合一：Node 进程同时负责 ① 把链上交易同步进 SQL 数据库 ② 提供 /api ③ 托管 web/ 页面
   - type: web
     name: chain-bank-dapp
-    runtime: static
-    buildCommand: echo "static site, no build"
-    staticPublishPath: ./web
+    runtime: node
+    buildCommand: npm install --omit=dev --no-audit --no-fund
+    startCommand: npm start
+    healthCheckPath: /api/health
+    envVars:
+      - key: NODE_VERSION
+        value: "22"
+      # 数据库文件位置。免费套餐没有持久磁盘，重启后数据库会清空并自动从链上重新同步（记录来自链上，不会丢）；
+      # 想长期保留数据库文件：升级套餐，取消下面 disk 和这一项的注释。
+      # - key: DB_PATH
+      #   value: /var/data/bank.db
+      # 可选：覆盖 web/config.js 里的设置
+      # - key: RPC_URL
+      #   sync: false
+      # - key: START_BLOCK
+      #   value: "0"
+    # disk:
+    #   name: bank-data
+    #   mountPath: /var/data
+    #   sizeGB: 1
     headers:
       - path: /*
         name: X-Content-Type-Options

@@ -7,4 +7,5 @@ window.BANK_CONFIG = {
   rpcUrl: "https://ethereum-sepolia-rpc.publicnode.com",
   explorer: "https://sepolia.etherscan.io",
   symbol: "ETH",
+  apiUrl: "/api",           // 后端 API（交易记录数据库）。前后端同域时保持 /api；没有后端可留空 ""，页面会隐藏“全站记录”
 };
