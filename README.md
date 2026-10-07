@@ -55,7 +55,7 @@ npm run deploy                 # 部署成功后自动写入 web/config.js
 ## 第 4 步：部署到 Render
 现在项目带后端（索引器 + 数据库 + API），在 Render 上是一个 **Web Service**，同时托管页面：
 1. 把整个项目推到 GitHub（`.gitignore` 已排除 node_modules 和数据库文件）。
-2. Render 控制台：New → Blueprint，选这个仓库，会自动读取 `render.yaml`。
+2. Render 控制台：New → Blueprint，选这个仓库，会自动读取 `render.yaml`（已设为 `plan: free` 免费套餐，不用付费）。
    或者 New → Web Service：Runtime 选 Node，Build Command 填 `npm install --omit=dev`，Start Command 填 `npm start`，环境变量加 `NODE_VERSION=22`。
 3. 部署完成后得到 `https://xxx.onrender.com`，页面和 `/api` 都在这个域名下。
 

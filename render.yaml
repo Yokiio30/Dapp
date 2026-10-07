@@ -3,6 +3,7 @@ services:
   - type: web
     name: chain-bank-dapp
     runtime: node
+    plan: free   # 免费套餐（不写的话 Blueprint 默认按付费套餐创建）
     buildCommand: npm install --omit=dev --no-audit --no-fund
     startCommand: npm start
     healthCheckPath: /api/health

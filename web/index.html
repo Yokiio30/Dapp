@@ -53,7 +53,7 @@
   li{display:flex;justify-content:space-between;gap:10px;padding:10px 0;border-top:1px solid var(--line);font-size:.92rem}
   li:first-child{border-top:0}
   li .sub{color:var(--muted);font-size:.78rem}
-  li a{color:inherit;text-decoration:none}
+  li .sub{word-break:break-all}
   .pos{color:var(--ok);font-weight:600;white-space:nowrap} .neg{color:var(--err);font-weight:600;white-space:nowrap}
   .empty{color:var(--muted);font-size:.9rem;padding:8px 0}
   .card[hidden]{display:none}
@@ -272,6 +272,19 @@
     loadAll(true);
   }
 
+  // 记录条目：所有信息直接显示在页面上，不跳转到区块浏览器
+  function txItem({ title, sub, time, block, hash, cls, text }) {
+    const li = el("li");
+    const left = el("div");
+    left.appendChild(el("div", null, title));
+    left.appendChild(el("div", "sub", sub));
+    left.appendChild(el("div", "sub", (time ? new Date(time * 1000).toLocaleString() + " · " : "") + `区块 ${block}`));
+    left.appendChild(el("div", "sub", `交易 ${hash.slice(0, 10)}…${hash.slice(-6)}`));
+    li.appendChild(left);
+    li.appendChild(el("div", cls, text));
+    return li;
+  }
+
   // ---------- 历史记录 ----------
   async function loadHistory() {
     const list = $("history");
@@ -298,22 +311,22 @@
       logs.sort((a, b) => b.blockNumber - a.blockNumber || b.index - a.index);
       list.replaceChildren();
       if (!logs.length) { list.appendChild(el("li", "empty", "暂无记录")); return; }
-      for (const l of logs.slice(0, 20)) {
+      const shown = logs.slice(0, 20);
+      const times = new Map();
+      await Promise.all([...new Set(shown.map((l) => l.blockNumber))].map(async (n) => {
+        try { times.set(n, (await wallet.getBlock(n)).timestamp); } catch (_) {}
+      }));
+      for (const l of shown) {
         const amt = l.args.amount;
         let title, sub, sign;
         if (l.eventName === "Deposited") { title = "存款"; sub = "钱包 → 银行"; sign = "+"; }
         else if (l.eventName === "Withdrawn") { title = "取款"; sub = "银行 → 钱包"; sign = "-"; }
-        else if (l.args.from.toLowerCase() === account.toLowerCase()) { title = "转出"; sub = "至 " + short(l.args.to); sign = "-"; }
-        else { title = "转入"; sub = "来自 " + short(l.args.from); sign = "+"; }
-        const li = el("li");
-        const left = el("div");
-        const a = el("a", null, title);
-        a.href = `${cfg.explorer}/tx/${l.transactionHash}`; a.target = "_blank"; a.rel = "noopener noreferrer";
-        left.appendChild(a);
-        left.appendChild(el("div", "sub", `${sub} · 区块 ${l.blockNumber}`));
-        li.appendChild(left);
-        li.appendChild(el("div", sign === "+" ? "pos" : "neg", `${sign}${fmt(amt)}`));
-        list.appendChild(li);
+        else if (l.args.from.toLowerCase() === account.toLowerCase()) { title = "转出"; sub = "至 " + l.args.to; sign = "-"; }
+        else { title = "转入"; sub = "来自 " + l.args.from; sign = "+"; }
+        list.appendChild(txItem({
+          title, sub, time: times.get(l.blockNumber), block: l.blockNumber, hash: l.transactionHash,
+          cls: sign === "+" ? "pos" : "neg", text: `${sign}${fmt(amt)}`,
+        }));
       }
     } catch (e) {
       list.replaceChildren(el("li", "empty", "记录加载失败：" + friendly(e)));
@@ -335,31 +348,18 @@
 
   function allRow(t) {
     const me = account ? account.toLowerCase() : null;
-    const amt = BigInt(t.amountWei);
-    let title, sub, cls = "amt", text = fmt(amt);
-    if (t.type === "deposit") { title = "存款"; sub = `${short(t.from)} · 钱包 → 银行`; }
-    else if (t.type === "withdraw") { title = "取款"; sub = `${short(t.from)} · 银行 → 钱包`; }
-    else { title = "转账"; sub = `${short(t.from)} → ${short(t.to)}`; }
-    if (me) {
+    let title, sub, cls = "amt", text = fmt(BigInt(t.amountWei));
+    if (t.type === "deposit") { title = "存款"; sub = `${t.from} · 钱包 → 银行`; }
+    else if (t.type === "withdraw") { title = "取款"; sub = `${t.from} · 银行 → 钱包`; }
+    else { title = "转账"; sub = `${t.from} → ${t.to}`; }
+    if (me && (t.from === me || t.to === me)) {
       // 与我有关的记录标出正负
       const inflow = t.type === "deposit" || (t.type === "transfer" && t.to === me);
-      const mine = t.from === me || t.to === me;
-      if (mine) {
-        if (t.type === "transfer") title = t.to === me ? "转入" : "转出";
-        cls = inflow ? "pos" : "neg";
-        text = (inflow ? "+" : "-") + text;
-      }
+      if (t.type === "transfer") title = t.to === me ? "转入" : "转出";
+      cls = inflow ? "pos" : "neg";
+      text = (inflow ? "+" : "-") + text;
     }
-    const li = el("li");
-    const left = el("div");
-    const a = el("a", null, title);
-    a.href = `${cfg.explorer}/tx/${t.txHash}`; a.target = "_blank"; a.rel = "noopener noreferrer";
-    left.appendChild(a);
-    left.appendChild(el("div", "sub", `${sub}`));
-    left.appendChild(el("div", "sub", new Date(t.blockTime * 1000).toLocaleString() + ` · 区块 ${t.blockNumber}`));
-    li.appendChild(left);
-    li.appendChild(el("div", cls, text));
-    return li;
+    return txItem({ title, sub, time: t.blockTime, block: t.blockNumber, hash: t.txHash, cls, text });
   }
 
   async function loadAll(reset) {
@@ -515,6 +515,7 @@
 
   render();
   refresh();
+  syncApi().then(() => loadAll(true));   // 后端刚唤醒时数据库可能还没补齐，同步完再刷新一次
   if (window.ethereum) connect(true);
 })();
 </script>
