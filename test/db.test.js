@@ -239,7 +239,7 @@ test("HTTP API：列表、筛选、用户、统计、同步、错误处理、静
   // 静态页面托管 + 目录穿越防护
   const page = await get(base, "/");
   assert.equal(page.status, 200);
-  assert.match(page.body, /链上小银行/);
+  assert.match(page.body, /On-Chain Bank/);
   const t1 = await get(base, "/..%2f..%2fpackage.json");
   assert.equal(t1.status, 403);
   // 浏览器/URL 解析会把 /%2e%2e/ 规整成 /，落到 web/ 目录内，找不到文件即可；关键是不能读到项目根目录的 package.json

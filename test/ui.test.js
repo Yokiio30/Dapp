@@ -68,12 +68,12 @@ async function waitFor(fn, what, ms = 15000) {
   check("网络识别正确", true);
   check("按钮已启用", !$("depBtn").disabled);
   await waitFor(() => !$("allCard").hidden, "全站记录卡片出现");
-  check("后端可用时显示全站记录卡片（暂无记录）", $("allHistory").textContent.includes("暂无记录"), $("allHistory").textContent);
+  check("后端可用时显示全站记录卡片（暂无记录）", $("allHistory").textContent.includes("No activity yet"), $("allHistory").textContent);
 
   // 存款 2 ETH
   $("depAmt").value = "2";
   $("depBtn").click();
-  await waitFor(() => status().includes("存款成功"), "存款成功");
+  await waitFor(() => status().includes("Deposit confirmed"), "Deposit confirmed");
   await waitFor(() => $("bankBal").textContent === "2", "银行余额=2");
   check("存款后银行余额 = 2", $("bankBal").textContent === "2", $("bankBal").textContent);
   check("总存款 = 2", $("totalDep").textContent.startsWith("2"), $("totalDep").textContent);
@@ -82,7 +82,7 @@ async function waitFor(fn, what, ms = 15000) {
   d.querySelector('[data-tab="withdraw"]').click();
   $("wdAmt").value = "0.5";
   $("wdBtn").click();
-  await waitFor(() => status().includes("取款成功"), "取款成功");
+  await waitFor(() => status().includes("Withdrawal confirmed"), "Withdrawal confirmed");
   await waitFor(() => $("bankBal").textContent === "1.5", "银行余额=1.5");
   check("取款后银行余额 = 1.5", true);
 
@@ -91,7 +91,7 @@ async function waitFor(fn, what, ms = 15000) {
   $("toAddr").value = await other.getAddress();
   $("trAmt").value = "1";
   $("trBtn").click();
-  await waitFor(() => status().includes("转账成功"), "转账成功");
+  await waitFor(() => status().includes("Transfer confirmed"), "Transfer confirmed");
   await waitFor(() => $("bankBal").textContent === "0.5", "银行余额=0.5");
   check("转账后银行余额 = 0.5", true);
   check("对方链上余额 = 1", (await bank.balanceOf(await other.getAddress())) === ethers.parseEther("1"));
@@ -100,21 +100,21 @@ async function waitFor(fn, what, ms = 15000) {
   $("trAmt").value = "9";
   $("trBtn").click();
   await sleep(200);
-  check("超额转账被拦截并提示", status().includes("银行余额不足"), status());
+  check("超额转账被拦截并提示", status().includes("Not enough bank balance"), status());
   $("toAddr").value = "0x123";
   $("trBtn").click();
   await sleep(200);
-  check("非法地址被拦截", status().includes("地址格式不正确"), status());
+  check("非法地址被拦截", status().includes("Invalid recipient address"), status());
   $("toAddr").value = await deployer.getAddress();
   $("trAmt").value = "0.1";
   $("trBtn").click();
   await sleep(200);
-  check("转给自己被拦截", status().includes("不能转给自己"), status());
+  check("转给自己被拦截", status().includes("transfer to yourself"), status());
   d.querySelector('[data-tab="deposit"]').click();
   $("depAmt").value = "abc";
   $("depBtn").click();
   await sleep(200);
-  check("非法金额被拦截", status().includes("金额格式不正确"), status());
+  check("非法金额被拦截", status().includes("Invalid amount"), status());
 
   // 历史记录
   await waitFor(() => d.querySelectorAll("#history li:not(.empty)").length >= 3, "历史记录");

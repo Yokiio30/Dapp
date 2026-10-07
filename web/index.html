@@ -1,10 +1,10 @@
 <!doctype html>
-<html lang="zh-CN">
+<html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#0b1220">
-<title>链上小银行</title>
+<title>On-Chain Bank</title>
 <style>
   :root{
     --bg:#0b1220; --card:#131c2e; --line:#243049; --text:#e6ebf5; --muted:#8fa0bd;
@@ -69,55 +69,55 @@
 <body>
 <main>
   <header>
-    <h1>🏦 链上小银行</h1>
-    <span id="netPill" class="pill">未连接</span>
+    <h1>🏦 On-Chain Bank</h1>
+    <span id="netPill" class="pill">Not connected</span>
   </header>
 
   <div id="banner" class="banner" hidden></div>
 
   <section class="card hero">
-    <div class="label">我的银行余额</div>
+    <div class="label">My bank balance</div>
     <div class="big"><span id="bankBal">—</span> <span id="sym1" style="font-size:1rem;font-weight:500"></span></div>
     <div class="row">
-      <div><div class="label">钱包余额</div><div class="val" id="walBal">—</div></div>
-      <div><div class="label">银行总存款</div><div class="val" id="totalDep">—</div></div>
+      <div><div class="label">Wallet balance</div><div class="val" id="walBal">—</div></div>
+      <div><div class="label">Total deposits</div><div class="val" id="totalDep">—</div></div>
     </div>
-    <div class="label" style="margin-top:12px">账户</div>
-    <div class="val" id="acct" style="font-size:.9rem">未连接</div>
-    <button id="connectBtn">连接钱包</button>
-    <a id="mmLink" hidden><button class="ghost" type="button">在 MetaMask 中打开</button></a>
+    <div class="label" style="margin-top:12px">Account</div>
+    <div class="val" id="acct" style="font-size:.9rem">Not connected</div>
+    <button id="connectBtn">Connect wallet</button>
+    <a id="mmLink" hidden><button class="ghost" type="button">Open in MetaMask</button></a>
   </section>
 
   <section class="card" id="actions">
     <div class="tabs" role="tablist">
-      <button role="tab" aria-selected="true" data-tab="deposit">存款</button>
-      <button role="tab" aria-selected="false" data-tab="withdraw">取款</button>
-      <button role="tab" aria-selected="false" data-tab="transfer">转账</button>
+      <button role="tab" aria-selected="true" data-tab="deposit">Deposit</button>
+      <button role="tab" aria-selected="false" data-tab="withdraw">Withdraw</button>
+      <button role="tab" aria-selected="false" data-tab="transfer">Transfer</button>
     </div>
 
     <div class="panel" id="p-deposit">
-      <div class="label" style="margin-top:14px">把钱包里的 ETH 存入银行</div>
-      <input id="depAmt" inputmode="decimal" placeholder="存款金额" autocomplete="off">
-      <button id="depBtn" data-need-wallet>确认存款</button>
+      <div class="label" style="margin-top:14px">Move ETH from your wallet into the bank</div>
+      <input id="depAmt" inputmode="decimal" placeholder="Deposit amount" autocomplete="off">
+      <button id="depBtn" data-need-wallet>Confirm deposit</button>
     </div>
 
     <div class="panel" id="p-withdraw" hidden>
-      <div class="label" style="margin-top:14px">从银行取回 ETH 到你的钱包</div>
+      <div class="label" style="margin-top:14px">Withdraw ETH from the bank to your wallet</div>
       <div class="inline">
-        <input id="wdAmt" inputmode="decimal" placeholder="取款金额" autocomplete="off">
-        <button class="ghost small" id="wdMax" type="button">全部</button>
+        <input id="wdAmt" inputmode="decimal" placeholder="Withdrawal amount" autocomplete="off">
+        <button class="ghost small" id="wdMax" type="button">Max</button>
       </div>
-      <button id="wdBtn" data-need-wallet>确认取款</button>
+      <button id="wdBtn" data-need-wallet>Confirm withdrawal</button>
     </div>
 
     <div class="panel" id="p-transfer" hidden>
-      <div class="label" style="margin-top:14px">转给另一个地址的银行账户（对方之后可自行取出）</div>
-      <input id="toAddr" placeholder="收款地址 0x..." autocapitalize="off" autocomplete="off" spellcheck="false">
+      <div class="label" style="margin-top:14px">Send to another address's bank account (they can withdraw it later)</div>
+      <input id="toAddr" placeholder="Recipient address 0x..." autocapitalize="off" autocomplete="off" spellcheck="false">
       <div class="inline">
-        <input id="trAmt" inputmode="decimal" placeholder="转账金额" autocomplete="off">
-        <button class="ghost small" id="trMax" type="button">全部</button>
+        <input id="trAmt" inputmode="decimal" placeholder="Transfer amount" autocomplete="off">
+        <button class="ghost small" id="trMax" type="button">Max</button>
       </div>
-      <button id="trBtn" data-need-wallet>确认转账</button>
+      <button id="trBtn" data-need-wallet>Confirm transfer</button>
     </div>
 
     <div id="status" role="status" aria-live="polite" style="margin-top:12px"></div>
@@ -125,27 +125,27 @@
 
   <section class="card">
     <div style="display:flex;justify-content:space-between;align-items:center">
-      <strong>最近记录</strong>
-      <button class="ghost small" id="reloadBtn" type="button">刷新</button>
+      <strong>Recent activity</strong>
+      <button class="ghost small" id="reloadBtn" type="button">Refresh</button>
     </div>
-    <ul id="history"><li class="empty">连接钱包后显示</li></ul>
+    <ul id="history"><li class="empty">Connect your wallet to see activity</li></ul>
   </section>
 
   <section class="card" id="allCard" hidden>
     <div class="head">
-      <div><strong>全站交易记录</strong> <span class="label" id="allCount"></span></div>
+      <div><strong>All transactions</strong> <span class="label" id="allCount"></span></div>
       <div class="btns">
-        <button class="ghost small" id="allMine" type="button" aria-pressed="false">只看我的</button>
-        <button class="ghost small" id="allReload" type="button">刷新</button>
+        <button class="ghost small" id="allMine" type="button" aria-pressed="false">Mine only</button>
+        <button class="ghost small" id="allReload" type="button">Refresh</button>
       </div>
     </div>
-    <ul id="allHistory"><li class="empty">加载中…</li></ul>
-    <button class="ghost" id="allMore" type="button" hidden>加载更多</button>
+    <ul id="allHistory"><li class="empty">Loading…</li></ul>
+    <button class="ghost" id="allMore" type="button" hidden>Load more</button>
   </section>
 
   <footer>
-    合约未经专业审计，仅建议在测试网使用。<br>
-    <a id="contractLink" class="link" target="_blank" rel="noopener noreferrer" hidden>查看合约</a>
+    This contract has not been professionally audited. Use on testnet only.<br>
+    <a id="contractLink" class="link" target="_blank" rel="noopener noreferrer" hidden>View contract</a>
   </footer>
 </main>
 
@@ -186,7 +186,7 @@
     s.textContent = text;
     if (txHash) {
       s.appendChild(document.createTextNode("\n"));
-      const a = el("a", null, "在区块浏览器查看");
+      const a = el("a", null, "View on block explorer");
       a.href = `${cfg.explorer}/tx/${txHash}`;
       a.target = "_blank"; a.rel = "noopener noreferrer";
       s.appendChild(a);
@@ -209,30 +209,30 @@
     return e?.data || e?.error?.data || e?.info?.error?.data || e?.info?.error?.data?.data || null;
   }
   function friendly(e) {
-    if (e?.code === "ACTION_REJECTED" || e?.code === 4001) return "你已在钱包中取消操作";
-    if (e?.code === "INSUFFICIENT_FUNDS") return "钱包里的 ETH 不足（需要预留手续费）";
+    if (e?.code === "ACTION_REJECTED" || e?.code === 4001) return "You cancelled the action in your wallet";
+    if (e?.code === "INSUFFICIENT_FUNDS") return "Not enough ETH in your wallet (leave some for fees)";
     const data = errorData(e);
     if (typeof data === "string" && data.startsWith("0x")) {
       try {
         const p = iface.parseError(data);
         switch (p.name) {
-          case "ZeroAmount": return "金额不能为 0";
-          case "InsufficientBalance": return `银行余额不足（可用 ${fmt(p.args[0])} ${cfg.symbol}）`;
-          case "InvalidRecipient": return "收款地址无效（不能是自己、零地址或合约本身）";
-          case "TransferFailed": return "转出失败，请稍后再试";
-          case "Reentrancy": return "操作过于频繁，请稍后再试";
+          case "ZeroAmount": return "Amount can't be 0";
+          case "InsufficientBalance": return `Not enough bank balance (available ${fmt(p.args[0])} ${cfg.symbol})`;
+          case "InvalidRecipient": return "Invalid recipient (can't be yourself, the zero address, or the contract)";
+          case "TransferFailed": return "Withdrawal transfer failed, please try again later";
+          case "Reentrancy": return "Too many requests, please try again shortly";
         }
       } catch (_) {}
     }
-    return e?.shortMessage || e?.reason || e?.message || "操作失败";
+    return e?.shortMessage || e?.reason || e?.message || "Action failed";
   }
 
   function parseAmount(str) {
     const v = str.trim().replace(",", ".");
-    if (!v) throw new Error("请输入金额");
+    if (!v) throw new Error("Enter an amount");
     let w;
-    try { w = parseEther(v); } catch (_) { throw new Error("金额格式不正确（最多 18 位小数）"); }
-    if (w <= 0n) throw new Error("金额必须大于 0");
+    try { w = parseEther(v); } catch (_) { throw new Error("Invalid amount (up to 18 decimals)"); }
+    if (w <= 0n) throw new Error("Amount must be greater than 0");
     return w;
   }
 
@@ -243,16 +243,16 @@
 
   function render() {
     $("sym1").textContent = cfg.symbol;
-    $("acct").textContent = account ? account : "未连接";
+    $("acct").textContent = account ? account : "Not connected";
     $("bankBal").textContent = account ? fmt(bankBalWei) : "—";
     $("walBal").textContent = account ? `${fmt(walBalWei)} ${cfg.symbol}` : "—";
     const pill = $("netPill");
-    if (!account) { pill.textContent = "未连接"; pill.className = "pill"; }
+    if (!account) { pill.textContent = "Not connected"; pill.className = "pill"; }
     else if (chainOk) { pill.textContent = cfg.chainName; pill.className = "pill ok"; }
-    else { pill.textContent = "网络不对"; pill.className = "pill bad"; }
+    else { pill.textContent = "Wrong network"; pill.className = "pill bad"; }
     const ready = !!(account && chainOk && hasContract);
     document.querySelectorAll("[data-need-wallet]").forEach((b) => (b.disabled = !ready || busy));
-    $("connectBtn").textContent = account ? "已连接" : "连接钱包";
+    $("connectBtn").textContent = account ? "Connected" : "Connect wallet";
     $("connectBtn").disabled = !!account;
   }
 
@@ -265,7 +265,7 @@
         [walBalWei, bankBalWei] = await Promise.all([wallet.getBalance(account), bank.balanceOf(account)]);
       }
     } catch (e) {
-      setStatus("读取链上数据失败：" + friendly(e), "err");
+      setStatus("Failed to read chain data: " + friendly(e), "err");
     }
     render();
     loadHistory();
@@ -278,8 +278,8 @@
     const left = el("div");
     left.appendChild(el("div", null, title));
     left.appendChild(el("div", "sub", sub));
-    left.appendChild(el("div", "sub", (time ? new Date(time * 1000).toLocaleString() + " · " : "") + `区块 ${block}`));
-    left.appendChild(el("div", "sub", `交易 ${hash.slice(0, 10)}…${hash.slice(-6)}`));
+    left.appendChild(el("div", "sub", (time ? new Date(time * 1000).toLocaleString() + " · " : "") + `Block ${block}`));
+    left.appendChild(el("div", "sub", `Tx ${hash.slice(0, 10)}…${hash.slice(-6)}`));
     li.appendChild(left);
     li.appendChild(el("div", cls, text));
     return li;
@@ -310,7 +310,7 @@
       logs = logs.filter((l) => { const k = l.transactionHash + ":" + l.index; if (seen.has(k)) return false; seen.add(k); return true; });
       logs.sort((a, b) => b.blockNumber - a.blockNumber || b.index - a.index);
       list.replaceChildren();
-      if (!logs.length) { list.appendChild(el("li", "empty", "暂无记录")); return; }
+      if (!logs.length) { list.appendChild(el("li", "empty", "No activity yet")); return; }
       const shown = logs.slice(0, 20);
       const times = new Map();
       await Promise.all([...new Set(shown.map((l) => l.blockNumber))].map(async (n) => {
@@ -319,17 +319,17 @@
       for (const l of shown) {
         const amt = l.args.amount;
         let title, sub, sign;
-        if (l.eventName === "Deposited") { title = "存款"; sub = "钱包 → 银行"; sign = "+"; }
-        else if (l.eventName === "Withdrawn") { title = "取款"; sub = "银行 → 钱包"; sign = "-"; }
-        else if (l.args.from.toLowerCase() === account.toLowerCase()) { title = "转出"; sub = "至 " + l.args.to; sign = "-"; }
-        else { title = "转入"; sub = "来自 " + l.args.from; sign = "+"; }
+        if (l.eventName === "Deposited") { title = "Deposit"; sub = "Wallet → Bank"; sign = "+"; }
+        else if (l.eventName === "Withdrawn") { title = "Withdrawal"; sub = "Bank → Wallet"; sign = "-"; }
+        else if (l.args.from.toLowerCase() === account.toLowerCase()) { title = "Sent"; sub = "To " + l.args.to; sign = "-"; }
+        else { title = "Received"; sub = "From " + l.args.from; sign = "+"; }
         list.appendChild(txItem({
           title, sub, time: times.get(l.blockNumber), block: l.blockNumber, hash: l.transactionHash,
           cls: sign === "+" ? "pos" : "neg", text: `${sign}${fmt(amt)}`,
         }));
       }
     } catch (e) {
-      list.replaceChildren(el("li", "empty", "记录加载失败：" + friendly(e)));
+      list.replaceChildren(el("li", "empty", "Failed to load activity: " + friendly(e)));
     }
   }
 
@@ -349,13 +349,13 @@
   function allRow(t) {
     const me = account ? account.toLowerCase() : null;
     let title, sub, cls = "amt", text = fmt(BigInt(t.amountWei));
-    if (t.type === "deposit") { title = "存款"; sub = `${t.from} · 钱包 → 银行`; }
-    else if (t.type === "withdraw") { title = "取款"; sub = `${t.from} · 银行 → 钱包`; }
-    else { title = "转账"; sub = `${t.from} → ${t.to}`; }
+    if (t.type === "deposit") { title = "Deposit"; sub = `${t.from} · Wallet → Bank`; }
+    else if (t.type === "withdraw") { title = "Withdrawal"; sub = `${t.from} · Bank → Wallet`; }
+    else { title = "Transfer"; sub = `${t.from} → ${t.to}`; }
     if (me && (t.from === me || t.to === me)) {
       // 与我有关的记录标出正负
       const inflow = t.type === "deposit" || (t.type === "transfer" && t.to === me);
-      if (t.type === "transfer") title = t.to === me ? "转入" : "转出";
+      if (t.type === "transfer") title = t.to === me ? "Received" : "Sent";
       cls = inflow ? "pos" : "neg";
       text = (inflow ? "+" : "-") + text;
     }
@@ -373,13 +373,13 @@
       if (reset) list.replaceChildren();
       for (const t of data.items) list.appendChild(allRow(t));
       allOffset += data.items.length;
-      if (!list.children.length) list.appendChild(el("li", "empty", "暂无记录"));
-      $("allCount").textContent = `共 ${data.total} 笔`;
+      if (!list.children.length) list.appendChild(el("li", "empty", "No activity yet"));
+      $("allCount").textContent = `${data.total} total`;
       $("allMore").hidden = allOffset >= data.total;
       $("allCard").hidden = false;
     } catch (_) {
       if ($("allCard").hidden) return;       // 后端从来没通过：保持隐藏
-      list.replaceChildren(el("li", "empty", "全站记录暂时无法加载"));
+      list.replaceChildren(el("li", "empty", "The all-transactions list is temporarily unavailable"));
       $("allMore").hidden = true;
     }
   }
@@ -395,9 +395,9 @@
     const net = await wallet.getNetwork();
     chainOk = net.chainId === BigInt(cfg.chainId);
     if (!chainOk) {
-      showBanner(`当前钱包不在 ${cfg.chainName} 网络，请切换后再操作。`, `切换到 ${cfg.chainName}`, switchChain);
+      showBanner(`Your wallet isn't on ${cfg.chainName}. Please switch networks first.`, `Switch to ${cfg.chainName}`, switchChain);
     } else {
-      showBanner(hasContract ? "" : "还没有配置合约地址：请先部署合约，并把地址填入 web/config.js。");
+      showBanner(hasContract ? "" : "No contract address configured. Deploy the contract and set it in web/config.js.");
     }
   }
 
@@ -422,7 +422,7 @@
   }
 
   async function connect(silent) {
-    if (!window.ethereum) { setStatus("没有检测到钱包，请在 MetaMask / Trust 等钱包的内置浏览器中打开本页。", "err"); return; }
+    if (!window.ethereum) { setStatus("No wallet detected. Open this page in the built-in browser of MetaMask, Trust, or another wallet app.", "err"); return; }
     try {
       wallet = new BrowserProvider(window.ethereum, "any");
       const accounts = await wallet.send(silent ? "eth_accounts" : "eth_requestAccounts", []);
@@ -432,7 +432,7 @@
       await checkChain();
       render();
       await refresh();
-      if (!silent) setStatus("已连接钱包", "ok");
+      if (!silent) setStatus("Wallet connected", "ok");
     } catch (e) { setStatus(friendly(e), "err"); }
   }
 
@@ -441,11 +441,11 @@
     if (busy) return;
     busy = true; render();
     try {
-      setStatus("请在钱包中确认交易…");
+      setStatus("Confirm the transaction in your wallet…");
       const tx = await fn();
-      setStatus("已提交，等待区块确认…", "", tx.hash);
+      setStatus("Submitted, waiting for confirmation…", "", tx.hash);
       await tx.wait();
-      setStatus(`✅ ${label}成功`, "ok", tx.hash);
+      setStatus(`✅ ${label} confirmed`, "ok", tx.hash);
       ["depAmt", "wdAmt", "trAmt"].forEach((id) => ($(id).value = ""));
       await syncApi();
       await refresh();
@@ -456,25 +456,25 @@
 
   $("depBtn").onclick = () => {
     let w; try { w = parseAmount($("depAmt").value); } catch (e) { return setStatus("❌ " + e.message, "err"); }
-    if (w > walBalWei) return setStatus("❌ 钱包余额不足", "err");
-    run("存款", () => bankWrite().deposit({ value: w }));
+    if (w > walBalWei) return setStatus("❌ Not enough wallet balance", "err");
+    run("Deposit", () => bankWrite().deposit({ value: w }));
   };
   $("wdBtn").onclick = () => {
     let w; try { w = parseAmount($("wdAmt").value); } catch (e) { return setStatus("❌ " + e.message, "err"); }
-    if (w > bankBalWei) return setStatus("❌ 银行余额不足", "err");
-    run("取款", () => bankWrite().withdraw(w));
+    if (w > bankBalWei) return setStatus("❌ Not enough bank balance", "err");
+    run("Withdrawal", () => bankWrite().withdraw(w));
   };
   $("wdMax").onclick = () => { $("wdAmt").value = formatEther(bankBalWei); };
   $("trMax").onclick = () => { $("trAmt").value = formatEther(bankBalWei); };
   $("trBtn").onclick = () => {
     const raw = $("toAddr").value.trim();
-    if (!isAddress(raw)) return setStatus("❌ 收款地址格式不正确", "err");
+    if (!isAddress(raw)) return setStatus("❌ Invalid recipient address", "err");
     const to = getAddress(raw);
-    if (to === account) return setStatus("❌ 不能转给自己", "err");
+    if (to === account) return setStatus("❌ You can't transfer to yourself", "err");
     let w; try { w = parseAmount($("trAmt").value); } catch (e) { return setStatus("❌ " + e.message, "err"); }
-    if (w > bankBalWei) return setStatus("❌ 银行余额不足", "err");
-    if (!confirm(`确认转账？\n\n金额：${fmt(w)} ${cfg.symbol}\n收款地址：${to}\n\n链上转账不可撤销。`)) return;
-    run("转账", () => bankWrite().transfer(to, w));
+    if (w > bankBalWei) return setStatus("❌ Not enough bank balance", "err");
+    if (!confirm(`Confirm transfer?\n\nAmount: ${fmt(w)} ${cfg.symbol}\nRecipient: ${to}\n\nOn-chain transfers can't be undone.`)) return;
+    run("Transfer", () => bankWrite().transfer(to, w));
   };
 
   // ---------- 页面交互 ----------
@@ -490,7 +490,7 @@
   $("allReload").onclick = async () => { await syncApi(); loadAll(true); };
   $("allMore").onclick = () => loadAll(false);
   $("allMine").onclick = () => {
-    if (!account) { setStatus("连接钱包后才能只看自己的记录", "err"); return; }
+    if (!account) { setStatus("Connect your wallet to filter your own activity", "err"); return; }
     allOnlyMine = !allOnlyMine;
     $("allMine").classList.toggle("on", allOnlyMine);
     $("allMine").setAttribute("aria-pressed", String(allOnlyMine));
@@ -510,7 +510,7 @@
     l.href = `${cfg.explorer}/address/${cfg.contractAddress}`;
     l.hidden = false;
   } else {
-    showBanner("还没有配置合约地址：请先部署合约，并把地址填入 web/config.js。");
+    showBanner("No contract address configured. Deploy the contract and set it in web/config.js.");
   }
 
   render();
